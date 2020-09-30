@@ -347,7 +347,8 @@ class Filter extends WidgetBase
         }
 
         $available = [];
-        $nameColumn = $this->getScopeNameFrom($scope);
+        $sqlSelect = $this->getScopeSelect($scope);
+        $nameColumn = $sqlSelect ? 'selection' : $this->getScopeNameFrom($scope);
         $options = $this->getOptionsFromModel($scope, $searchQuery);
         foreach ($options as $option) {
             $available[$option->getKey()] = $option->{$nameColumn};
@@ -417,11 +418,28 @@ class Filter extends WidgetBase
          */
         $this->fireSystemEvent('backend.filter.extendQuery', [$query, $scope]);
 
+        /*
+         * The "select" config takes precedence over "nameFrom".
+         * A virtual column called "selection" will contain the result.
+         */
+        $sqlSelect = $this->getScopeSelect($scope);
+
+        if($sqlSelect) {
+            $nameSearchField = DB::raw($sqlSelect);
+            $query->select(
+                DB::raw($nameSearchField . ' AS selection'),
+                $model->getKeyName()
+            );
+        }
+        else {
+            $nameSearchField = $this->getScopeNameFrom($scope);
+        }
+
         if (!$searchQuery) {
             return $query->get();
         }
 
-        $searchFields = [$model->getKeyName(), $this->getScopeNameFrom($scope)];
+        $searchFields = [$model->getKeyName(), $nameSearchField];
         return $query->searchWhere($searchQuery, $searchFields)->get();
     }
 
@@ -947,6 +965,20 @@ class Filter extends WidgetBase
         }
 
         return $scope->nameFrom;
+    }
+
+    /**
+     * Returns the SQL select name column for a scope.
+     * @param  string $scope
+     * @return string
+     */
+    public function getScopeSelect($scope)
+    {
+        if (is_string($scope)) {
+            $scope = $this->getScope($scope);
+        }
+
+        return $scope->select;
     }
 
     /**

@@ -27,6 +27,11 @@ class FilterScope
     public $nameFrom = 'name';
 
     /**
+     * @var string Custom SQL column selection to use for the name reference
+     */
+    public $select;
+
+    /**
      * @var string Column to display for the description (optional)
      */
     public $descriptionFrom;
@@ -134,6 +139,7 @@ class FilterScope
             'scope',
             'cssClass',
             'nameFrom',
+            'select',
             'descriptionFrom',
             'disabled',
         ];
